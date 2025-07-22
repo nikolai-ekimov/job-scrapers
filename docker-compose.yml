@@ -1,0 +1,41 @@
+services:
+  upwork-scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    image: niko-scrapers-image
+    container_name: uws-cont
+    restart: unless-stopped
+    volumes:
+      - ./logs-uws-cont:/home/dockie/latest_logs
+    env_file: ".env"
+    # environment:
+    #   - HTTP_PROXY=${PROXY_URL}
+    #   - HTTPS_PROXY=${PROXY_URL}
+    #   - ALL_PROXY=${PROXY_URL}
+    shm_size: '2g'
+    user: "dockie:dockie"
+    stdin_open: true 
+    tty: true
+    command: python /home/dockie/app_uw/src/upwork_scraper.py
+
+    # TODO: add healthcheck
+
+  # linkedin-scraper:
+  #   image: niko-scrapers-image
+  #   container_name: lis-cont
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./logs-lis-cont:/home/dockie/latest_logs
+  #   env_file: ".env"
+  #   environment:
+  #     - HTTP_PROXY=${PROXY_URL}
+  #     - HTTPS_PROXY=${PROXY_URL}
+  #     - ALL_PROXY=${PROXY_URL}
+  #   shm_size: '2g'
+  #   user: "dockie:dockie"
+  #   stdin_open: true 
+  #   tty: true
+  #   command: python /home/dockie/app_li/src/linkedin_scraper.py
+  

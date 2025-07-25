@@ -9,16 +9,18 @@ from collections import deque
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 
-load_dotenv()
+load_dotenv(dotenv_path=".env-uws")
 
 # --- Config ---
-THE_URL = os.getenv("THE_URL", "https://www.upwork.com/nx/find-work/")
+BASE_URL = os.getenv("BASE_URL")
 MIN_REFRESH_INTERVAL = int(os.getenv("MIN_REFRESH_INTERVAL", 60))
 MAX_REFRESH_INTERVAL = int(os.getenv("MAX_REFRESH_INTERVAL", 120))
 RUN_DURATION = int(os.getenv("RUN_DURATION", 180))
 EMAIL = os.getenv("EMAIL")
 PASSWORD = os.getenv("USER_PASSWORD")
-PROXY_URL = os.getenv("PROXY_URL")
+PROXY_URL = os.getenv("PROXY_URL", None)
+IS_HEADLESS = os.getenv("IS_HEADLESS", "False").lower() == "true"
+CHROME_PROFILE_PATH = os.getenv("CHROME_PROFILE_PATH")
 
 # --- Filters ---
 title_keywords_str = os.getenv("TITLE_KEYWORDS_EXCLUDE", "")
@@ -61,15 +63,7 @@ def is_job_relevant(title, country):
 
 # --- Core  ---
 
-def perform_login(sb):
-    log_message("-> Starting login sequence...")
-    sb.wait(10)
-    
-    log_message("   ...Accepting cookies if present.")
-    if sb.is_element_visible("button#onetrust-accept-btn-handler"):
-        sb.click("button#onetrust-accept-btn-handler")
-        log_message("   ...Cookies accepted.")
-    
+def sign_in(sb):
     log_message("   ...Typing email.")
     sb.type("input#login_username", EMAIL)
     sb.click("button#login_password_continue")
@@ -82,6 +76,22 @@ def perform_login(sb):
     
     log_message("   ...Clicking final login button.")
     sb.click("button#login_control_continue")
+    
+def perform_login(sb):
+    sb.wait(10)
+    
+    log_message("   ......Checking for cookies.")
+    if sb.is_element_visible("button#onetrust-accept-btn-handler"):
+        sb.click("button#onetrust-accept-btn-handler")
+        log_message("   ...Cookies accepted.")
+        
+    if "login" in sb.get_current_url():
+        log_message("-> Login page detected. Signing in...")
+        sign_in(sb)
+    else:
+        log_message("-> Already logged in. Proceeding to jobs page...")
+        
+    sb.wait(10)
     
     log_message("-> Waiting for job feed to load post-login...")
     sb.wait_for_element_visible(JOB_LIST_SELECTOR, timeout=30)
@@ -203,12 +213,16 @@ def scrape_upwork():
 
     log_message("🚀 Starting Upwork Scraper...")
 
-    with SB(uc=True, headless=True) as sb:
-        log_message(f"✅ Opening {THE_URL}...")
+    with SB(uc=True, 
+            headless=IS_HEADLESS, 
+            proxy=PROXY_URL,
+            user_data_dir=CHROME_PROFILE_PATH,
+            ) as sb:
+        log_message(f"✅ Opening {BASE_URL}...")
         try:
-            sb.open(THE_URL)
+            sb.open(BASE_URL)
             sb.set_window_size(1280, 720)
-            log_message(f"✅ Opened {THE_URL}")
+            log_message(f"✅ Opened {BASE_URL}")
             perform_login(sb)
             build_initial_baseline(sb)
             monitor_and_scrape(sb)

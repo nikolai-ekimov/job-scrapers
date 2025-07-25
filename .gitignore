@@ -60,6 +60,8 @@ env/
 
 # Environment variables
 .env
+.env-lis
+.env-uws
 
 # Application-specific ignores from my structure
 /downloaded_files/
@@ -74,3 +76,6 @@ Thumbs.db
 .png
 .jpg
 .jpeg
+
+upwork_profile_data/
+linkedin_profile_data/

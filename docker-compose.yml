@@ -1,41 +1,58 @@
 services:
+  upwork-scraper-cleanup:
+    image: busybox
+    container_name: uws-cleanup-cont
+    user: "1000:1000"
+    volumes:
+      - ./upwork_profile_data:/home/dockie/upwork_profile
+    command: rm -f /home/dockie/upwork_profile/SingletonLock
+
   upwork-scraper:
     build:
       context: .
       dockerfile: Dockerfile
-    
     image: niko-scrapers-image
     container_name: uws-cont
     restart: unless-stopped
+    depends_on:
+      upwork-scraper-cleanup:
+        condition: service_completed_successfully
     volumes:
       - ./logs-uws-cont:/home/dockie/latest_logs
-    env_file: ".env"
-    # environment:
-    #   - HTTP_PROXY=${PROXY_URL}
-    #   - HTTPS_PROXY=${PROXY_URL}
-    #   - ALL_PROXY=${PROXY_URL}
-    shm_size: '2g'
+      - ./upwork_profile_data:/home/dockie/upwork_profile
+    env_file: ".env-uws"
+    environment:
+      - CHROME_PROFILE_PATH=/home/dockie/upwork_profile
+    shm_size: '2gb'
     user: "dockie:dockie"
     stdin_open: true 
     tty: true
     command: python /home/dockie/app_uw/src/upwork_scraper.py
 
-    # TODO: add healthcheck
+  linkedin-scraper-cleanup:
+    image: busybox
+    container_name: lis-cleanup-cont
+    user: "1000:1000"
+    volumes:
+      - ./linkedin_profile_data:/home/dockie/linkedin_profile
+    command: rm -f /home/dockie/linkedin_profile/SingletonLock
 
-  # linkedin-scraper:
-  #   image: niko-scrapers-image
-  #   container_name: lis-cont
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./logs-lis-cont:/home/dockie/latest_logs
-  #   env_file: ".env"
-  #   environment:
-  #     - HTTP_PROXY=${PROXY_URL}
-  #     - HTTPS_PROXY=${PROXY_URL}
-  #     - ALL_PROXY=${PROXY_URL}
-  #   shm_size: '2g'
-  #   user: "dockie:dockie"
-  #   stdin_open: true 
-  #   tty: true
-  #   command: python /home/dockie/app_li/src/linkedin_scraper.py
+  linkedin-scraper:
+    image: niko-scrapers-image
+    container_name: lis-cont
+    restart: unless-stopped
+    depends_on:
+      linkedin-scraper-cleanup:
+        condition: service_completed_successfully
+    volumes:
+      - ./logs-lis-cont:/home/dockie/latest_logs
+      - ./linkedin_profile_data:/home/dockie/linkedin_profile
+    env_file: ".env-lis"
+    environment:
+      - CHROME_PROFILE_PATH=/home/dockie/linkedin_profile
+    shm_size: '2gb'
+    user: "dockie:dockie"
+    stdin_open: true 
+    tty: true
+    command: python /home/dockie/app_li/src/linkedin_scraper.py
   
